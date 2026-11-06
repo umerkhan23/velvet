@@ -167,6 +167,17 @@ export default function ScratchHeart() {
     )
   }
 
+  const release = (e) => {
+    const el = e?.currentTarget
+    if (el && e?.pointerId != null) {
+      try {
+        if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId)
+      } catch {
+        /* already released */
+      }
+    }
+  }
+
   const down = (e) => {
     if (revealedRef.current) return
     drawing.current = true
@@ -181,7 +192,8 @@ export default function ScratchHeart() {
     scratch(pos(e))
     checkProgress()
   }
-  const up = () => {
+  const up = (e) => {
+    release(e)
     if (!drawing.current) return
     drawing.current = false
     last.current = null
@@ -222,8 +234,8 @@ export default function ScratchHeart() {
         <Icon.heart width="9" height="9" />
       </div>
 
-      <div className="scratch-box">
-        <svg viewBox={`0 0 ${W} ${H}`} className="heart-under">
+      <div className={`scratch-box${revealed ? ' is-revealed' : ''}`}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="heart-under" aria-hidden="true">
           <path d={HEART} fill="#faf8f2" stroke="#d6d2c6" strokeWidth="1.5" />
           <text x="150" y="98" textAnchor="middle" dominantBaseline="middle" className="std-label">
             {saveTheDate.label}
@@ -245,7 +257,6 @@ export default function ScratchHeart() {
           onPointerMove={move}
           onPointerUp={up}
           onPointerCancel={up}
-          onPointerLeave={up}
         />
       </div>
     </section>

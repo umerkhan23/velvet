@@ -27,9 +27,20 @@ export default function App() {
 
   useReveal(done)
   useEffect(() => {
-    const lock = done ? '' : 'hidden'
-    document.documentElement.style.overflow = lock
-    document.body.style.overflow = lock
+    const html = document.documentElement
+    const body = document.body
+    if (!done) {
+      html.style.overflow = 'hidden'
+      body.style.overflow = 'hidden'
+      html.style.touchAction = 'none'
+      return
+    }
+    html.style.overflow = ''
+    body.style.overflow = ''
+    html.style.touchAction = ''
+    body.style.touchAction = 'pan-y'
+    html.style.height = ''
+    body.style.height = ''
   }, [done])
 
   const onOpen = useCallback(() => {
