@@ -6,6 +6,9 @@ const HEART =
   'M150 268 C150 268 22 190 12 104 C4 40 52 8 96 12 C124 15 142 34 150 52 C158 34 176 15 204 12 C248 8 296 40 288 104 C278 190 150 268 150 268 Z'
 const W = 300
 const H = 280
+const HEART_CLIP =
+  'M0.5 0.957 C0.5 0.957 0.073 0.679 0.04 0.371 C0.013 0.143 0.173 0.029 0.32 0.043 C0.413 0.054 0.473 0.121 0.5 0.186 C0.527 0.121 0.587 0.054 0.68 0.043 C0.827 0.029 0.987 0.143 0.96 0.371 C0.927 0.679 0.5 0.957 0.5 0.957 Z'
+const heartPath = typeof Path2D !== 'undefined' ? new Path2D(HEART) : null
 /** Reveal when about 25% of the cover remains (75% scratched). */
 const REVEAL_REMAINING = 0.25
 
@@ -110,6 +113,12 @@ export default function ScratchHeart() {
     }
   }
 
+  const inHeart = (pt) => {
+    const c = canvasRef.current
+    if (!c || !heartPath) return true
+    return c.getContext('2d').isPointInPath(heartPath, pt.x, pt.y)
+  }
+
   const scratch = (pt) => {
     const ctx = canvasRef.current.getContext('2d')
     ctx.globalCompositeOperation = 'destination-out'
@@ -180,20 +189,26 @@ export default function ScratchHeart() {
 
   const down = (e) => {
     if (revealedRef.current) return
+    const pt = pos(e)
+    if (!inHeart(pt)) return
     drawing.current = true
     last.current = null
     setScratching(true)
     setPetalsOn(true)
+    e.currentTarget.classList.add('is-scratching')
+    e.preventDefault()
     e.currentTarget.setPointerCapture?.(e.pointerId)
-    scratch(pos(e))
+    scratch(pt)
   }
   const move = (e) => {
     if (!drawing.current || revealedRef.current) return
+    e.preventDefault()
     scratch(pos(e))
     checkProgress()
   }
   const up = (e) => {
     release(e)
+    e?.currentTarget?.classList?.remove('is-scratching')
     if (!drawing.current) return
     drawing.current = false
     last.current = null
@@ -206,6 +221,13 @@ export default function ScratchHeart() {
 
   return (
     <section className="section scratch-section reveal">
+      <svg width="0" height="0" className="scratch-clip-defs" aria-hidden="true" focusable="false">
+        <defs>
+          <clipPath id="scratch-heart-clip" clipPathUnits="objectBoundingBox">
+            <path d={HEART_CLIP} />
+          </clipPath>
+        </defs>
+      </svg>
       <div className="confetti-layer" aria-hidden="true">
         {confetti.map((c) => (
           <span

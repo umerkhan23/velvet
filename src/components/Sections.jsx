@@ -40,6 +40,9 @@ function FlowerFallVideo({ active }) {
       muted
       preload="auto"
       aria-hidden="true"
+      webkit-playsinline="true"
+      x5-playsinline="true"
+      disablePictureInPicture
     />
   )
 }
@@ -127,12 +130,22 @@ export function Location() {
       <div className="reveal venue-copy">
         <h2 className="script sec-title">{location.label}</h2>
         <p className="serif venue-name">{location.name}</p>
-        <a className="serif loc-line link" href={location.mapsUrl} target="_blank" rel="noreferrer">
+        <a
+          className="serif loc-line link"
+          href={location.mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {location.address}
         </a>
       </div>
       <div className="venue-map reveal">
-        <a className="maps-open" href={location.mapsUrl} target="_blank" rel="noreferrer">
+        <a
+          className="maps-open"
+          href={location.mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Open in Maps
           <span aria-hidden="true">↗</span>
         </a>
@@ -143,6 +156,7 @@ export function Location() {
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
           allowFullScreen
+          allow="fullscreen; geolocation"
         />
       </div>
     </section>
