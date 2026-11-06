@@ -470,14 +470,29 @@ video, img {
   display: block;
   cursor: grab;
   pointer-events: auto;
-  touch-action: pan-y;
+  /* none from the start — browser won't begin a scroll gesture on the heart */
+  touch-action: none;
+  -ms-touch-action: none;
   clip-path: url(#scratch-heart-clip);
   -webkit-clip-path: url(#scratch-heart-clip);
   transition: opacity .5s ease;
   filter: drop-shadow(0 10px 18px rgba(74, 20, 24, 0.22));
+  overscroll-behavior: none;
 }
 .scratch-canvas.is-scratching {
   touch-action: none;
+}
+html.scratch-lock,
+body.scratch-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+body.scratch-lock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
 }
 .scratch-canvas:active { cursor: grabbing; }
 .scratch-canvas.gone {

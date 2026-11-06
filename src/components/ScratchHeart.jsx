@@ -160,8 +160,10 @@ export default function ScratchHeart() {
   const reveal = () => {
     if (revealedRef.current) return
     revealedRef.current = true
+    drawing.current = false
     setRevealed(true)
     setScratching(false)
+    unlockScroll()
     const colors = ['#7a2230', '#9a3a48', '#c9a15e', '#b08a84', '#d8c7a6']
     setConfetti(
       Array.from({ length: 70 }, (_, i) => ({
@@ -175,6 +177,43 @@ export default function ScratchHeart() {
       }))
     )
   }
+
+  const scrollLock = useRef({ y: 0, active: false })
+
+  const lockScroll = () => {
+    if (scrollLock.current.active) return
+    scrollLock.current.active = true
+    scrollLock.current.y = window.scrollY || window.pageYOffset || 0
+    const html = document.documentElement
+    const body = document.body
+    html.classList.add('scratch-lock')
+    body.classList.add('scratch-lock')
+    body.style.top = `-${scrollLock.current.y}px`
+  }
+
+  const unlockScroll = () => {
+    if (!scrollLock.current.active) return
+    scrollLock.current.active = false
+    const html = document.documentElement
+    const body = document.body
+    html.classList.remove('scratch-lock')
+    body.classList.remove('scratch-lock')
+    body.style.top = ''
+    window.scrollTo(0, scrollLock.current.y)
+  }
+
+  useEffect(() => {
+    const blockTouchMove = (e) => {
+      if (!drawing.current) return
+      e.preventDefault()
+    }
+    // iOS still scrolls unless touchmove is canceled with passive:false
+    document.addEventListener('touchmove', blockTouchMove, { passive: false })
+    return () => {
+      document.removeEventListener('touchmove', blockTouchMove)
+      unlockScroll()
+    }
+  }, [])
 
   const release = (e) => {
     const el = e?.currentTarget
@@ -195,6 +234,7 @@ export default function ScratchHeart() {
     last.current = null
     setScratching(true)
     setPetalsOn(true)
+    lockScroll()
     e.currentTarget.classList.add('is-scratching')
     e.preventDefault()
     e.currentTarget.setPointerCapture?.(e.pointerId)
@@ -209,6 +249,7 @@ export default function ScratchHeart() {
   const up = (e) => {
     release(e)
     e?.currentTarget?.classList?.remove('is-scratching')
+    unlockScroll()
     if (!drawing.current) return
     drawing.current = false
     last.current = null
