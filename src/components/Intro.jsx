@@ -15,6 +15,7 @@ export default function Intro({ onOpen, onReveal, onDone }) {
   const cineRef = useRef(null)
   const started = useRef(false)
   const revealed = useRef(false)
+  const lastTap = useRef(0)
 
   useEffect(() => {
     if (stage !== 'exit') return
@@ -26,6 +27,23 @@ export default function Intro({ onOpen, onReveal, onDone }) {
     if (stage === 'done') onDone?.()
   }, [stage, onDone])
 
+  // Warm the video on mount so the first tap can play inside the user-gesture window
+  useEffect(() => {
+    const v = cineRef.current
+    if (!v) return
+    v.muted = true
+    v.defaultMuted = true
+    v.playsInline = true
+    v.setAttribute('muted', '')
+    v.setAttribute('playsinline', '')
+    v.setAttribute('webkit-playsinline', '')
+    try {
+      v.load()
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   if (stage === 'done') return null
 
   const finish = () => {
@@ -35,7 +53,17 @@ export default function Intro({ onOpen, onReveal, onDone }) {
     setStage('exit')
   }
 
-  const beginOpen = async () => {
+  const showCine = () => setCineReady(true)
+
+  const beginOpen = async (e) => {
+    // Deduplicate click + touch + pointer on flaky mobile Chrome
+    const now = Date.now()
+    if (now - lastTap.current < 450) return
+    lastTap.current = now
+
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+
     if (stage !== 'closed' || started.current) return
     started.current = true
     onOpen?.()
@@ -45,54 +73,103 @@ export default function Intro({ onOpen, onReveal, onDone }) {
       finish()
       return
     }
+
+    // Keep attributes inside the gesture (required on some Android Chrome builds)
+    v.muted = true
+    v.defaultMuted = true
+    v.playsInline = true
+    v.setAttribute('muted', '')
+    v.setAttribute('playsinline', '')
+    v.setAttribute('webkit-playsinline', '')
+
+    setStage('cinematic')
+
     try {
-      v.currentTime = 0
-      setStage('cinematic')
-      const show = () => setCineReady(true)
-      if (typeof v.requestVideoFrameCallback === 'function') {
-        v.requestVideoFrameCallback(() => show())
-      } else {
-        v.addEventListener('playing', show, { once: true })
+      if (v.readyState < 2) {
+        await Promise.race([
+          new Promise((resolve) => {
+            const done = () => resolve()
+            v.addEventListener('loadeddata', done, { once: true })
+            v.addEventListener('canplay', done, { once: true })
+          }),
+          new Promise((resolve) => setTimeout(resolve, 1200)),
+        ])
       }
-      await v.play()
-      setTimeout(show, 80)
+      try {
+        v.currentTime = 0
+      } catch {
+        /* some WebViews throw if seeking too early */
+      }
+
+      if (typeof v.requestVideoFrameCallback === 'function') {
+        v.requestVideoFrameCallback(() => showCine())
+      } else {
+        v.addEventListener('playing', showCine, { once: true })
+        v.addEventListener('loadeddata', showCine, { once: true })
+      }
+
+      const playAttempt = v.play()
+      if (playAttempt && typeof playAttempt.then === 'function') {
+        await playAttempt
+      }
+      showCine()
+      // Safety: if `ended` never fires on a broken decoder, still continue
+      window.setTimeout(() => {
+        if (!revealed.current && (v.ended || v.paused)) finish()
+      }, 12000)
     } catch {
+      // Video blocked / unsupported — still run the open-flap still animation
+      showCine()
       setCineReady(false)
-      finish()
+      window.setTimeout(finish, 700)
+    }
+  }
+
+  const onKey = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      beginOpen(e)
     }
   }
 
   return (
     <div
       className={`intro st-${stage}`}
-      onClick={beginOpen}
       role="button"
-      aria-label="Tap the seal to open"
+      tabIndex={0}
+      aria-label="Tap anywhere to open"
+      onClick={beginOpen}
+      onPointerUp={beginOpen}
+      onTouchEnd={beginOpen}
+      onKeyDown={onKey}
     >
-      <div className="env-full">
-        <img className="env-front-img" src={FRONT} alt="" draggable="false" />
+      <div className="intro-stage">
+        <div className="env-full">
+          <img className="env-front-img" src={FRONT} alt="" draggable="false" />
+        </div>
+
+        <div className="seal-hotspot" aria-hidden="true" />
+
+        {/* reverse light + top flap open (golden embroidery envelope) */}
+        <video
+          ref={cineRef}
+          className={`cine-clip${cineReady ? ' is-ready' : ''}`}
+          src={CINEMATIC}
+          poster={FRONT}
+          playsInline
+          muted
+          preload="auto"
+          onEnded={() => setTimeout(finish, 120)}
+          onError={() => setTimeout(finish, 400)}
+        />
+
+        <img
+          className={`open-still${stage === 'exit' ? ' is-on' : ''}`}
+          src={FLAP_OPEN}
+          alt=""
+          draggable="false"
+        />
       </div>
-
-      <div className="seal-hotspot" aria-hidden="true" />
-
-      {/* reverse light + top flap open (golden embroidery envelope) */}
-      <video
-        ref={cineRef}
-        className={`cine-clip${cineReady ? ' is-ready' : ''}`}
-        src={CINEMATIC}
-        poster={FRONT}
-        playsInline
-        muted
-        preload="auto"
-        onEnded={() => setTimeout(finish, 120)}
-      />
-
-      <img
-        className={`open-still${stage === 'exit' ? ' is-on' : ''}`}
-        src={FLAP_OPEN}
-        alt=""
-        draggable="false"
-      />
     </div>
   )
 }

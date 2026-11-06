@@ -56,10 +56,26 @@ body {
 
 /* ================= INTRO ================= */
 .intro {
-  position: fixed; top: 0; bottom: 0; left: 50%; width: var(--col);
-  transform: translateX(-50%); z-index: 50; overflow: hidden; cursor: pointer;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  cursor: pointer;
   background: #1b0507;
-  transform-origin: center center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.intro-stage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--col);
+  max-width: 100%;
+  transform: translateX(-50%);
+  overflow: hidden;
+  pointer-events: none; /* touches handled by full-screen .intro */
 }
 .st-cinematic, .st-exit { pointer-events: none; }
 

@@ -30,14 +30,13 @@ export default function App() {
     const html = document.documentElement
     const body = document.body
     if (!done) {
+      // Lock scroll only — do NOT set touch-action:none (breaks taps on some Chrome Android)
       html.style.overflow = 'hidden'
       body.style.overflow = 'hidden'
-      html.style.touchAction = 'none'
       return
     }
     html.style.overflow = ''
     body.style.overflow = ''
-    html.style.touchAction = ''
     body.style.touchAction = 'pan-y'
     html.style.height = ''
     body.style.height = ''
